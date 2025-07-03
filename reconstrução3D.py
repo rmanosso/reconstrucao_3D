@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+#teste
 
 def golden_ratio_3d_sampling(m_max, M, phi1=0.4656, phi2=0.6823, visualize=False):
     """
