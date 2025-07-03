@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-#teste
+import pynfft
+import time
+from time import perf_counter
+
+
 
 def golden_ratio_3d_sampling(m_max, M, phi1=0.4656, phi2=0.6823, visualize=False):
     """
@@ -77,14 +81,14 @@ def golden_ratio_3d_sampling(m_max, M, phi1=0.4656, phi2=0.6823, visualize=False
     return points, labels
 
 # Exemplo de uso:
-qnt_raios = 15000
-qnt_pontos = 1000
+qnt_raios = 150
+qnt_pontos = 10
 k_points, labels = golden_ratio_3d_sampling(m_max=qnt_raios, M=qnt_pontos, visualize=False)
 
 k_points_normalized = k_points / (2 * np.pi)  # De [-π,π] para [-0.5,0.5]
 
 
-import pynfft
+#Usando pyNFFT
 
 def reconstruct_3d(k_points, k_data, img_shape=(64, 64, 64)):
     """
@@ -135,9 +139,44 @@ plan_forward.precompute()
 plan_forward.f_hat = np.fft.fftshift(np.fft.fftn(phantom))
 k_data_simulated = plan_forward.trafo()
 
+# Medição do tempo de reconstrução
+start_time = time.time()
+start = perf_counter()
+
+
 # Reconstruir
 reconstructed = reconstruct_3d(k_points_normalized, k_data_simulated, img_shape)
 
+end_time = time.time()
+reconstruction_time = end_time - start_time
+elapsed = perf_counter() - start
+
+
+print(f"Reconstrução concluída em {reconstruction_time:.2f} segundos")
+print(f"Tamanho da imagem: {img_shape}")
+print(f"Número de pontos k-space: {len(k_points_normalized)}")
+print(f"Tempo de reconstrução: {elapsed:.4f} segundos (precisão de microssegundos)")
+
+
+
+def calculate_metrics(original, reconstructed, reconstruction_time):
+    """Calcula métricas de qualidade da reconstrução"""
+    mse = np.mean((original - reconstructed)**2)
+    rmse = np.sqrt(mse)
+    psnr = 20 * np.log10(np.max(original) / (np.sqrt(mse) + 1e-10))
+    
+    return {
+        'MSE': mse,
+        'RMSE': rmse,
+        'PSNR': psnr,
+        'Tempo (s)': reconstruction_time,
+        'Pontos k-space': len(k_points_normalized),
+        'Resolução': img_shape
+    }
+
+metrics = calculate_metrics(phantom, reconstructed, reconstruction_time)
+for k, v in metrics.items():
+    print(f"{k}: {v}")
 
 
 # Visualização de cortes
@@ -156,5 +195,5 @@ plt.tight_layout()
 
 
 nome_arquivo = f'Reconstrucao_{qnt_raios}raios_{qnt_pontos}pontos.pdf'
-plt.savefig(nome_arquivo, bbox_inches='tight', dpi=300)
+#plt.savefig(nome_arquivo, bbox_inches='tight', dpi=300)
 plt.show()
